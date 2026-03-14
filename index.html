@@ -1,271 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Pills">
-  <meta name="theme-color" content="#0a0a0a">
-  <title>Pill Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pill Tracker Pro</title>
+    <style>
+        :root {
+            --bg: #f4f7f6; --card: #ffffff; --text: #333;
+            --primary: #2563eb; --success: #059669; --warn: #d97706; --danger: #dc2626;
+            --gray: #9ca3af; --light-gray: #e5e7eb;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        
+        h2 { font-size: 1.2rem; margin: 20px 0 10px; display: flex; justify-content: space-between; align-items: center; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        
+        /* Inputs */
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid var(--light-gray); font-size: 1rem; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        button:disabled { background: var(--gray); opacity: 0.6; }
+        button.sec { background: var(--light-gray); color: var(--text); }
+        button.danger { background: var(--danger); }
+        
+        /* Grid Items */
+        .med-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--light-gray); }
+        .med-row:last-child { border-bottom: none; }
+        .med-info { flex: 1; }
+        .med-name { font-weight: 600; }
+        .med-meta { font-size: 0.85rem; color: var(--gray); }
+        
+        /* Indicators */
+        .btn-check { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--light-gray); color: var(--light-gray); font-size: 1.2rem; margin-left: 10px; cursor: pointer; flex-shrink: 0; }
+        .btn-check.done { background: var(--success); border-color: var(--success); color: white; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        
+        /* Log Table */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; color: var(--gray); font-weight: normal; padding-bottom: 8px; }
+        td { padding: 8px 0; border-top: 1px solid var(--light-gray); }
 
-  <style>
-    :root {
-      --yellow: #facc15; --green: #22c55e; --red: #ef4444; --blue: #3b82f6;
-      --bg: #0a0a0a; --card: #141414; --card2: #1a1a1a; --row: #1e1e1e;
-      --border: #252525; --border2: #2a2a2a; --text: #e0e0e0; --muted: #666; --dim: #444;
-      --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body {
-      font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif;
-      background: var(--bg); color: var(--text); margin: 0; padding: 0;
-      padding-top: calc(var(--safe-top) + 16px); padding-bottom: calc(var(--safe-bottom) + 24px);
-      padding-left: 14px; padding-right: 14px; line-height: 1.45; min-height: 100dvh;
-    }
-    h1 { text-align: center; color: var(--yellow); margin: 0 0 18px; font-size: 1.45em; font-weight: 700; }
-    .section { background: var(--card); border-radius: 14px; padding: 14px 15px; margin-bottom: 11px; border: 1px solid var(--border); }
-    h2 { margin: 0 0 10px; font-size: 0.95em; color: #999; font-weight: 600; text-transform: uppercase; }
-    .note { color: #4a4a4a; font-size: 0.78em; margin: 0 0 10px; }
-    button {
-      background: var(--yellow); color: #000; border: none; padding: 12px 16px; font-size: 0.95em;
-      border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; margin: 5px 0;
-    }
-    button.blu { background: var(--blue); color: #fff; }
-    button.danger { background: #6b1a1a; color: #fca5a5; border: 1px solid #7a2020; }
-    button.sec { background: #222; color: #ccc; border: 1px solid #333; }
-    button.sm { width: auto; padding: 5px 13px; font-size: 0.8em; margin: 0; border-radius: 7px; }
-    input, select { width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid #2c2c2c; background: var(--card2); color: var(--text); margin-bottom: 9px; }
-    .pill-row { display: flex; align-items: center; gap: 11px; padding: 11px 12px; background: var(--row); border-radius: 10px; margin-bottom: 7px; border: 1px solid var(--border2); }
-    .circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #3a3a3a; background: #222; display: flex; align-items: center; justify-content: center; cursor: pointer; color: transparent; }
-    .circle.on { background: var(--green); border-color: var(--green); color: #fff; }
-    .circle.add { color: #555; font-size: 18px; border-style: dashed; }
-    .pill-info { flex: 1; min-width: 0; }
-    .pill-name { font-size: 0.95em; font-weight: 500; }
-    .pill-name.taken { color: #3a6a3a; text-decoration: line-through; }
-    .pill-dose { font-size: 0.78em; color: var(--muted); }
-    .thy-badge { font-size: 0.78em; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
-    .thy-warn { background: #2a2000; color: var(--yellow); }
-    .thy-good { background: #0a2a0a; color: var(--green); }
-    .med-item { display: flex; align-items: center; gap: 9px; padding: 9px 11px; background: var(--card2); border-radius: 9px; margin-bottom: 6px; }
-    .extra { display: none; }
-    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1c1c1c; padding: 10px 22px; border-radius: 22px; opacity: 0; transition: 0.3s; z-index: 1000; border: 1px solid #333; }
-    #toast.show { opacity: 1; }
-  </style>
+        /* Toast */
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1000; }
+        #toast.show { opacity: 1; }
+    </style>
 </head>
 <body>
 
-  <h1>💊 Pill Tracker</h1>
-
-  <div class="section">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-      <h2 style="margin:0;">Thyroid</h2>
-      <div id="thy-badge"></div>
+<div class="container">
+    <div class="card">
+        <h2>Thyroid <span id="thy-badge" style="font-size: 0.9rem; font-weight: normal;"></span></h2>
+        <button id="btn-thy-now" onclick="markThyroidNow()">Log Thyroid Now</button>
     </div>
-    <div style="display:flex; gap:8px;">
-      <button id="btn-thy-now" onclick="markThyroidNow()">Taken Now</button>
-      <button class="sec" onclick="openThyModal()">Earlier</button>
+
+    <h2>Morning <button class="sec" style="width: auto; padding: 5px 10px;" id="btn-all-morning" onclick="takeAll('morning')">Take All</button></h2>
+    <div class="card" id="morning-list"></div>
+
+    <h2>Evening <button class="sec" style="width: auto; padding: 5px 10px;" id="btn-all-evening" onclick="takeAll('evening')">Take All</button></h2>
+    <div class="card" id="evening-list"></div>
+
+    <div id="section-asneeded" style="display:none;">
+        <h2>As Needed</h2>
+        <div class="card" id="asneeded-list"></div>
     </div>
-  </div>
 
-  <div class="section">
-    <h2>Morning Pills</h2>
-    <div id="morning-list"></div>
-    <button id="btn-all-morning" onclick="takeAll('morning')" style="margin-top:6px;">Take All Morning</button>
-  </div>
-
-  <div class="section">
-    <h2>Evening Pills</h2>
-    <div id="evening-list"></div>
-    <button id="btn-all-evening" onclick="takeAll('evening')" style="margin-top:6px;">Take All Evening</button>
-  </div>
-
-  <div class="section" id="section-asneeded" style="display:none;">
-    <h2>As Needed</h2>
-    <div id="asneeded-list"></div>
-  </div>
-
-  <div class="section" id="section-preventive" style="display:none;">
-    <h2>Preventive</h2>
-    <div id="preventive-list"></div>
-  </div>
-
-  <div class="section">
-    <div onclick="toggleSection('manage')" style="cursor:pointer; display:flex; justify-content:space-between;">
-      <h2>Manage Medications</h2>
-      <span id="icon-manage">+</span>
+    <h2>Today's Log</h2>
+    <div class="card">
+        <div id="no-log" style="color: var(--gray); text-align: center;">No doses logged yet.</div>
+        <table id="log-table" style="display:none;">
+            <thead><tr><th>Med</th><th>Time</th><th>Slot</th></tr></thead>
+            <tbody id="log-body"></tbody>
+        </table>
     </div>
-    <div id="body-manage" style="display:none; margin-top:12px;">
-      <input id="f-name" placeholder="Name">
-      <input id="f-dose" placeholder="Dose (e.g. 50mg)">
-      <select id="f-time" onchange="toggleExtraFields()">
-        <option value="morning">Morning only</option>
-        <option value="evening">Evening only</option>
-        <option value="both">Morning + Evening</option>
-        <option value="asneeded">As Needed</option>
-        <option value="preventive">Preventive</option>
-      </select>
-      <div class="extra" id="extra-asneeded">
-        <input id="f-minhours" type="number" placeholder="Min hours between">
-        <input id="f-maxdaily" type="number" placeholder="Max doses per 24h">
-      </div>
-      <button id="btn-submit" onclick="addMed()">Add Medication</button>
-      <div id="meds-list" style="margin-top:16px;"></div>
-    </div>
-  </div>
 
-  <div class="section">
-    <div onclick="toggleSection('log')" style="cursor:pointer; display:flex; justify-content:space-between;">
-      <h2 id="log-title">Today's Log</h2>
-      <span id="icon-log">+</span>
+    <h2>Manage Meds</h2>
+    <div class="card">
+        <input type="text" id="f-name" placeholder="Medication Name">
+        <input type="text" id="f-dose" placeholder="Dose (e.g. 50mg)">
+        <select id="f-time" onchange="toggleExtraFields()">
+            <option value="morning">Morning</option>
+            <option value="evening">Evening</option>
+            <option value="both">Both (AM/PM)</option>
+            <option value="asneeded">As Needed</option>
+        </select>
+        <div id="extra-asneeded" style="display:none;">
+            <input type="number" id="f-minhours" placeholder="Min hours between doses">
+            <input type="number" id="f-maxdaily" placeholder="Max doses per day">
+        </div>
+        <button id="btn-add" onclick="addMed()">Add Medication</button>
+        <div id="meds-list" style="margin-top: 15px;"></div>
     </div>
-    <div id="body-log" style="display:none; margin-top:12px;">
-      <table id="log-table">
-        <tbody id="log-body"></tbody>
-      </table>
-    </div>
-  </div>
 
-  <div id="toast"></div>
+    <div style="margin-top: 30px;">
+        <button class="sec" onclick="backupData()">Download Backup</button>
+        <button class="sec danger" style="margin-top: 10px;" onclick="clearAllData()">Clear All Data</button>
+    </div>
+</div>
+
+<div id="toast"></div>
 
 <script>
-const DB_NAME = 'PillTrackerDB_v1';
-let db;
-let meds = [];
-let intakes = {};
-let thyroid = { date: null, ts: null };
-let editingIndex = null;
+// --- DB CORE ---
+const DB_NAME = 'PillTrackerDB_v2';
+const DB_VER = 1;
+let db, meds = [], intakes = {}, thyroid = { date: null, ts: null };
 
-function openDB() {
-  return new Promise((res) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('store');
-    req.onsuccess = e => { db = e.target.result; res(); };
-  });
+async function init() {
+    db = await new Promise((res, rej) => {
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = e => e.target.result.createObjectStore('store');
+        req.onsuccess = e => res(e.target.result);
+        req.onerror = () => rej(req.error);
+    });
+    await loadAll();
+    renderAll();
 }
 
-async function dbGet(k) { return new Promise(res => {
-  const req = db.transaction('store','readonly').objectStore('store').get(k);
-  req.onsuccess = () => res(req.result);
-});}
+const dbGet = k => new Promise(res => {
+    const tx = db.transaction('store', 'readonly');
+    const req = tx.objectStore('store').get(k);
+    req.onsuccess = () => res(req.result);
+});
 
-async function dbSet(k, v) { return new Promise(res => {
-  const req = db.transaction('store','readwrite').objectStore('store').put(v, k);
-  req.onsuccess = () => res();
-});}
-
-function todayKey() { return new Date().toISOString().split('T')[0]; }
-function fmtTime(ts) { return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
-
-function fmtSlot(s) {
-  const m = { morning: 'Morning', evening: 'Evening', both: 'AM/PM', asneeded: 'As Needed', preventive: 'Preventive' };
-  return m[s] || s;
-}
+const dbSet = (k, v) => new Promise(res => {
+    const tx = db.transaction('store', 'readwrite');
+    tx.objectStore('store').put(v, k).onsuccess = () => res();
+});
 
 async function loadAll() {
-  meds = (await dbGet('meds')) || [];
-  intakes = (await dbGet('intakes')) || {};
-  thyroid = (await dbGet('thyroid')) || { date: null, ts: null };
+    meds = (await dbGet('meds')) || [];
+    intakes = (await dbGet('intakes')) || {};
+    thyroid = (await dbGet('thyroid')) || { date: null, ts: null };
 }
 
-function showToast(m) {
-  const t = document.getElementById('toast');
-  t.textContent = m; t.className = 'show';
-  setTimeout(() => t.className = '', 2000);
-}
-
-function toggleSection(id) {
-  const b = document.getElementById('body-' + id);
-  const i = document.getElementById('icon-' + id);
-  const open = b.style.display === 'none';
-  b.style.display = open ? 'block' : 'none';
-  i.textContent = open ? '−' : '+';
-}
-
-function toggleExtraFields() {
-  const v = document.getElementById('f-time').value;
-  document.getElementById('extra-asneeded').style.display = v === 'asneeded' ? 'block' : 'none';
-}
-
-function startEdit(i) {
-  const m = meds[i]; editingIndex = i;
-  document.getElementById('f-name').value = m.name;
-  document.getElementById('f-dose').value = m.dose || '';
-  document.getElementById('f-time').value = m.time;
-  toggleExtraFields();
-  document.getElementById('btn-submit').textContent = "Save Changes";
-  document.getElementById('btn-submit').className = "blu";
-}
-
-async function addMed() {
-  const name = document.getElementById('f-name').value.trim();
-  if (!name) return;
-  const med = {
-    name, dose: document.getElementById('f-dose').value.trim(),
-    time: document.getElementById('f-time').value,
-    minHours: document.getElementById('f-minhours').value || 0
-  };
-  if (editingIndex !== null) { meds[editingIndex] = med; editingIndex = null; }
-  else { meds.push(med); }
-  await dbSet('meds', meds);
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-dose').value = '';
-  document.getElementById('btn-submit').textContent = "Add Medication";
-  document.getElementById('btn-submit').className = "";
-  renderAll();
-}
+// --- LOGIC ---
+const todayKey = () => new Date().toISOString().split('T')[0];
+const fmtTime = ts => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
 async function markTaken(idx, slot) {
-  const key = todayKey() + '-' + idx + '-' + slot + '-' + Date.now();
-  intakes[key] = true; await dbSet('intakes', intakes); renderAll();
+    const ts = Date.now();
+    // Unique key: YYYY-MM-DD-INDEX-SLOT-TIMESTAMP
+    const key = `${todayKey()}-${idx}-${slot}-${ts}`;
+    intakes[key] = true;
+    await dbSet('intakes', intakes);
+    renderAll();
+    showToast('Logged!');
 }
 
-function renderDailyList(id, slot) {
-  const el = document.getElementById(id);
-  const list = meds.map((m, i) => ({m, i})).filter(({m}) => (slot==='morning' && (m.time==='morning'||m.time==='both')) || (slot==='evening' && (m.time==='evening'||m.time==='both')));
-  el.innerHTML = list.map(({m, i}) => {
-    const done = Object.keys(intakes).some(k => k.startsWith(todayKey() + '-' + i + '-' + slot));
-    return `<div class="pill-row ${done?'done':''}">
-      <div class="circle ${done?'on':''}" onclick="${done?'':'markTaken('+i+',\''+slot+'\')'}">${done?'✓':''}</div>
-      <div class="pill-info">
-        <div class="pill-name ${done?'taken':''}">${m.name}</div>
-        <div class="pill-dose">${m.dose || ''}</div>
-      </div>
-    </div>`;
-  }).join('');
+async function markThyroidNow() {
+    const ts = Date.now();
+    thyroid = { date: todayKey(), ts };
+    await dbSet('thyroid', thyroid);
+    // Log it as a generic intake for the history list
+    const key = `${todayKey()}-thyroid-Morning-${ts}`;
+    intakes[key] = true;
+    await dbSet('intakes', intakes);
+    renderAll();
+    showToast('Thyroid Logged');
+}
+
+function isTakenToday(idx, slot) {
+    const prefix = `${todayKey()}-${idx}-${slot}`;
+    return Object.keys(intakes).some(k => k.startsWith(prefix));
+}
+
+async function takeAll(slot) {
+    const now = Date.now();
+    let count = 0;
+    meds.forEach((m, i) => {
+        const match = (slot === 'morning' && (m.time === 'morning' || m.time === 'both')) || 
+                      (slot === 'evening' && (m.time === 'evening' || m.time === 'both'));
+        if (match && !isTakenToday(i, slot)) {
+            intakes[`${todayKey()}-${i}-${slot}-${now + i}`] = true;
+            count++;
+        }
+    });
+    if (count) {
+        await dbSet('intakes', intakes);
+        renderAll();
+        showToast(`Took ${count} pills`);
+    }
+}
+
+// --- UI RENDERING ---
+function renderAll() {
+    renderThyroid();
+    renderList('morning-list', 'morning');
+    renderList('evening-list', 'evening');
+    renderAsNeeded();
+    renderLog();
+    renderSettingsList();
+}
+
+function renderThyroid() {
+    const badge = document.getElementById('thy-badge');
+    const btn = document.getElementById('btn-thy-now');
+    if (thyroid.date === todayKey()) {
+        const elapsed = Math.floor((Date.now() - thyroid.ts) / 60000);
+        const rem = Math.max(0, 30 - elapsed);
+        badge.innerHTML = rem > 0 ? `${fmtTime(thyroid.ts)} (${rem}m left)` : `${fmtTime(thyroid.ts)} (Clear ✓)`;
+        btn.disabled = true;
+    } else {
+        badge.innerHTML = "";
+        btn.disabled = false;
+    }
+}
+
+function renderList(id, slot) {
+    const el = document.getElementById(id);
+    const list = meds.filter(m => m.time === slot || m.time === 'both');
+    if (!list.length) return el.innerHTML = '<div style="color:#ccc">None</div>';
+    
+    el.innerHTML = meds.map((m, i) => {
+        if (m.time !== slot && m.time !== 'both') return '';
+        const done = isTakenToday(i, slot);
+        return `
+            <div class="med-row">
+                <div class="med-info">
+                    <div class="med-name">${m.name}</div>
+                    <div class="med-meta">${m.dose || ''}</div>
+                </div>
+                <div class="btn-check ${done ? 'done' : ''}" onclick="markTaken(${i}, '${slot}')">
+                    ${done ? '✓' : '+'}
+                </div>
+            </div>`;
+    }).join('');
 }
 
 function renderAsNeeded() {
-  const list = meds.map((m, i) => ({m, i})).filter(({m}) => m.time === 'asneeded');
-  document.getElementById('section-asneeded').style.display = list.length ? 'block' : 'none';
-  document.getElementById('asneeded-list').innerHTML = list.map(({m, i}) => `
-    <div class="pill-row">
-      <div class="circle add" onclick="markTaken(${i},'asneeded')">+</div>
-      <div class="pill-info">
-        <div class="pill-name">${m.name} ${m.dose ? '('+m.dose+')' : ''}</div>
-      </div>
-    </div>`).join('');
+    const sec = document.getElementById('section-asneeded');
+    const el = document.getElementById('asneeded-list');
+    const list = meds.filter(m => m.time === 'asneeded');
+    sec.style.display = list.length ? 'block' : 'none';
+    
+    el.innerHTML = meds.map((m, i) => {
+        if (m.time !== 'asneeded') return '';
+        return `
+            <div class="med-row">
+                <div class="med-info">
+                    <div class="med-name">${m.name}</div>
+                    <div class="med-meta">${m.dose || ''}</div>
+                </div>
+                <button style="width:auto" onclick="markTaken(${i}, 'asneeded')">Log Dose</button>
+            </div>`;
+    }).join('');
 }
 
-function renderMedsList() {
-  document.getElementById('meds-list').innerHTML = meds.map((m, i) => `
-    <div class="med-item">
-      <div class="pill-info">
-        <div>${m.name} ${m.dose ? '('+m.dose+')' : ''}</div>
-        <div class="med-slot">${fmtSlot(m.time)}</div>
-      </div>
-      <button class="sm blu" onclick="startEdit(${i})">Edit</button>
-    </div>`).join('');
+function renderLog() {
+    const entries = Object.keys(intakes)
+        .filter(k => k.startsWith(todayKey()))
+        .map(k => {
+            const p = k.split('-');
+            const isThy = p[1] === 'thyroid';
+            const name = isThy ? 'Thyroid' : (meds[p[1]]?.name || 'Unknown');
+            return { name, slot: p[2], ts: parseInt(p[3]) };
+        }).sort((a,b) => a.ts - b.ts);
+
+    document.getElementById('no-log').style.display = entries.length ? 'none' : 'block';
+    document.getElementById('log-table').style.display = entries.length ? 'table' : 'none';
+    document.getElementById('log-body').innerHTML = entries.map(e => `
+        <tr><td>${e.name}</td><td>${fmtTime(e.ts)}</td><td>${e.slot}</td></tr>
+    `).join('');
 }
 
-function renderAll() {
-  renderDailyList('morning-list', 'morning');
-  renderDailyList('evening-list', 'evening');
-  renderAsNeeded();
-  renderMedsList();
+function renderSettingsList() {
+    document.getElementById('meds-list').innerHTML = meds.map((m, i) => `
+        <div class="med-row" style="font-size:0.8rem">
+            <span>${m.name} (${m.time})</span>
+            <span style="color:red" onclick="deleteMed(${i})">Delete</span>
+        </div>
+    `).join('');
 }
 
-openDB().then(async () => { await loadAll(); renderAll(); });
+// --- MANAGEMENT ---
+async function addMed() {
+    const name = document.getElementById('f-name').value;
+    if (!name) return;
+    meds.push({
+        name,
+        dose: document.getElementById('f-dose').value,
+        time: document.getElementById('f-time').value
+    });
+    await dbSet('meds', meds);
+    document.getElementById('f-name').value = '';
+    renderAll();
+}
+
+async function deleteMed(i) {
+    if(confirm('Delete?')) {
+        meds.splice(i, 1);
+        await dbSet('meds', meds);
+        renderAll();
+    }
+}
+
+async function clearAllData() {
+    if(confirm('Wipe everything?')) {
+        await indexedDB.deleteDatabase(DB_NAME);
+        location.reload();
+    }
+}
+
+function toggleExtraFields() {
+    document.getElementById('extra-asneeded').style.display = 
+        document.getElementById('f-time').value === 'asneeded' ? 'block' : 'none';
+}
+
+function showToast(m) {
+    const t = document.getElementById('toast');
+    t.textContent = m; t.className = 'show';
+    setTimeout(() => t.className = '', 2000);
+}
+
+function backupData() {
+    const data = JSON.stringify({meds, intakes, thyroid});
+    const blob = new Blob([data], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `med-backup-${todayKey()}.json`;
+    a.click();
+}
+
+init();
 </script>
 </body>
 </html>
