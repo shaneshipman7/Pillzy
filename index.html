@@ -1,574 +1,271 @@
-// IndexedDB Setup
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pills">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Pill Tracker</title>
+
+  <style>
+    :root {
+      --yellow: #facc15; --green: #22c55e; --red: #ef4444; --blue: #3b82f6;
+      --bg: #0a0a0a; --card: #141414; --card2: #1a1a1a; --row: #1e1e1e;
+      --border: #252525; --border2: #2a2a2a; --text: #e0e0e0; --muted: #666; --dim: #444;
+      --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif;
+      background: var(--bg); color: var(--text); margin: 0; padding: 0;
+      padding-top: calc(var(--safe-top) + 16px); padding-bottom: calc(var(--safe-bottom) + 24px);
+      padding-left: 14px; padding-right: 14px; line-height: 1.45; min-height: 100dvh;
+    }
+    h1 { text-align: center; color: var(--yellow); margin: 0 0 18px; font-size: 1.45em; font-weight: 700; }
+    .section { background: var(--card); border-radius: 14px; padding: 14px 15px; margin-bottom: 11px; border: 1px solid var(--border); }
+    h2 { margin: 0 0 10px; font-size: 0.95em; color: #999; font-weight: 600; text-transform: uppercase; }
+    .note { color: #4a4a4a; font-size: 0.78em; margin: 0 0 10px; }
+    button {
+      background: var(--yellow); color: #000; border: none; padding: 12px 16px; font-size: 0.95em;
+      border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; margin: 5px 0;
+    }
+    button.blu { background: var(--blue); color: #fff; }
+    button.danger { background: #6b1a1a; color: #fca5a5; border: 1px solid #7a2020; }
+    button.sec { background: #222; color: #ccc; border: 1px solid #333; }
+    button.sm { width: auto; padding: 5px 13px; font-size: 0.8em; margin: 0; border-radius: 7px; }
+    input, select { width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid #2c2c2c; background: var(--card2); color: var(--text); margin-bottom: 9px; }
+    .pill-row { display: flex; align-items: center; gap: 11px; padding: 11px 12px; background: var(--row); border-radius: 10px; margin-bottom: 7px; border: 1px solid var(--border2); }
+    .circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #3a3a3a; background: #222; display: flex; align-items: center; justify-content: center; cursor: pointer; color: transparent; }
+    .circle.on { background: var(--green); border-color: var(--green); color: #fff; }
+    .circle.add { color: #555; font-size: 18px; border-style: dashed; }
+    .pill-info { flex: 1; min-width: 0; }
+    .pill-name { font-size: 0.95em; font-weight: 500; }
+    .pill-name.taken { color: #3a6a3a; text-decoration: line-through; }
+    .pill-dose { font-size: 0.78em; color: var(--muted); }
+    .thy-badge { font-size: 0.78em; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+    .thy-warn { background: #2a2000; color: var(--yellow); }
+    .thy-good { background: #0a2a0a; color: var(--green); }
+    .med-item { display: flex; align-items: center; gap: 9px; padding: 9px 11px; background: var(--card2); border-radius: 9px; margin-bottom: 6px; }
+    .extra { display: none; }
+    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1c1c1c; padding: 10px 22px; border-radius: 22px; opacity: 0; transition: 0.3s; z-index: 1000; border: 1px solid #333; }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <h1>💊 Pill Tracker</h1>
+
+  <div class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <h2 style="margin:0;">Thyroid</h2>
+      <div id="thy-badge"></div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="btn-thy-now" onclick="markThyroidNow()">Taken Now</button>
+      <button class="sec" onclick="openThyModal()">Earlier</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Morning Pills</h2>
+    <div id="morning-list"></div>
+    <button id="btn-all-morning" onclick="takeAll('morning')" style="margin-top:6px;">Take All Morning</button>
+  </div>
+
+  <div class="section">
+    <h2>Evening Pills</h2>
+    <div id="evening-list"></div>
+    <button id="btn-all-evening" onclick="takeAll('evening')" style="margin-top:6px;">Take All Evening</button>
+  </div>
+
+  <div class="section" id="section-asneeded" style="display:none;">
+    <h2>As Needed</h2>
+    <div id="asneeded-list"></div>
+  </div>
+
+  <div class="section" id="section-preventive" style="display:none;">
+    <h2>Preventive</h2>
+    <div id="preventive-list"></div>
+  </div>
+
+  <div class="section">
+    <div onclick="toggleSection('manage')" style="cursor:pointer; display:flex; justify-content:space-between;">
+      <h2>Manage Medications</h2>
+      <span id="icon-manage">+</span>
+    </div>
+    <div id="body-manage" style="display:none; margin-top:12px;">
+      <input id="f-name" placeholder="Name">
+      <input id="f-dose" placeholder="Dose (e.g. 50mg)">
+      <select id="f-time" onchange="toggleExtraFields()">
+        <option value="morning">Morning only</option>
+        <option value="evening">Evening only</option>
+        <option value="both">Morning + Evening</option>
+        <option value="asneeded">As Needed</option>
+        <option value="preventive">Preventive</option>
+      </select>
+      <div class="extra" id="extra-asneeded">
+        <input id="f-minhours" type="number" placeholder="Min hours between">
+        <input id="f-maxdaily" type="number" placeholder="Max doses per 24h">
+      </div>
+      <button id="btn-submit" onclick="addMed()">Add Medication</button>
+      <div id="meds-list" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div onclick="toggleSection('log')" style="cursor:pointer; display:flex; justify-content:space-between;">
+      <h2 id="log-title">Today's Log</h2>
+      <span id="icon-log">+</span>
+    </div>
+    <div id="body-log" style="display:none; margin-top:12px;">
+      <table id="log-table">
+        <tbody id="log-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
 const DB_NAME = 'PillTrackerDB_v1';
-const DB_VER = 1;
 let db;
-
-function openDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('store')) {
-        d.createObjectStore('store');
-      }
-    };
-    req.onsuccess = e => { db = e.target.result; res(); };
-    req.onerror = () => rej(req.error);
-  });
-}
-
-function dbGet(key) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction('store', 'readonly');
-    const req = tx.objectStore('store').get(key);
-    req.onsuccess = () => res(req.result ?? null);
-    req.onerror = () => rej(req.error);
-  });
-}
-
-function dbSet(key, val) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction('store', 'readwrite');
-    const req = tx.objectStore('store').put(val, key);
-    req.onsuccess = () => res();
-    req.onerror = () => rej(req.error);
-  });
-}
-
-// App State
 let meds = [];
 let intakes = {};
 let thyroid = { date: null, ts: null };
-let editingIndex = null; // Track if we are editing
+let editingIndex = null;
+
+function openDB() {
+  return new Promise((res) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('store');
+    req.onsuccess = e => { db = e.target.result; res(); };
+  });
+}
+
+async function dbGet(k) { return new Promise(res => {
+  const req = db.transaction('store','readonly').objectStore('store').get(k);
+  req.onsuccess = () => res(req.result);
+});}
+
+async function dbSet(k, v) { return new Promise(res => {
+  const req = db.transaction('store','readwrite').objectStore('store').put(v, k);
+  req.onsuccess = () => res();
+});}
 
 function todayKey() { return new Date().toISOString().split('T')[0]; }
-function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function fmtTime(ts) { return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+
+function fmtSlot(s) {
+  const m = { morning: 'Morning', evening: 'Evening', both: 'AM/PM', asneeded: 'As Needed', preventive: 'Preventive' };
+  return m[s] || s;
 }
 
-// Helper to format slot names for display
-function fmtSlot(slot) {
-  const map = {
-    'morning': 'Morning',
-    'evening': 'Evening',
-    'both': 'Morning + Evening',
-    'asneeded': 'As Needed',
-    'preventive': 'Preventive'
-  };
-  return map[slot] || slot;
-}
-
-// Persistence
 async function loadAll() {
-  meds    = (await dbGet('meds'))    || [];
+  meds = (await dbGet('meds')) || [];
   intakes = (await dbGet('intakes')) || {};
   thyroid = (await dbGet('thyroid')) || { date: null, ts: null };
-
-  if (thyroid.date && thyroid.date < todayKey()) {
-    thyroid = { date: null, ts: null };
-    await dbSet('thyroid', thyroid);
-  }
 }
 
-async function saveMeds()    { await dbSet('meds', meds); }
-async function saveIntakes() { await dbSet('intakes', intakes); }
-async function saveThyroid() { await dbSet('thyroid', thyroid); }
-
-// Toast
-let toastTimer;
-function showToast(msg, type = 'info') {
+function showToast(m) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'show ' + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = ''; }, 2600);
+  t.textContent = m; t.className = 'show';
+  setTimeout(() => t.className = '', 2000);
 }
 
-// Collapsible
 function toggleSection(id) {
-  const body = document.getElementById('body-' + id);
-  const icon = document.getElementById('icon-' + id);
-  const open = body.style.display === 'none';
-  body.style.display = open ? 'block' : 'none';
-  icon.textContent = open ? '−' : '+';
-}
-
-// Intake helpers
-function isTakenToday(idx, slot) {
-  const prefix = todayKey() + '-' + idx + '-' + slot;
-  return Object.keys(intakes).some(k => k.startsWith(prefix));
-}
-
-function countAsNeededToday(idx) {
-  const prefix = todayKey() + '-' + idx + '-asneeded';
-  return Object.keys(intakes).filter(k => k.startsWith(prefix)).length;
-}
-
-function lastAsNeededTs(idx) {
-  const prefix = todayKey() + '-' + idx + '-asneeded';
-  const keys = Object.keys(intakes).filter(k => k.startsWith(prefix));
-  if (!keys.length) return null;
-  const tss = keys.map(k => parseInt(k.split('-').pop())).filter(n => !isNaN(n));
-  return tss.length ? Math.max(...tss) : null;
-}
-
-async function markTaken(idx, slot, ts) {
-  ts = ts || Date.now();
-  const key = todayKey() + '-' + idx + '-' + slot + '-' + ts;
-  intakes[key] = true;
-  await saveIntakes();
-  renderAll();
-}
-
-async function takeAll(slot) {
-  let count = 0;
-  const now = Date.now();
-  for (let i = 0; i < meds.length; i++) {
-    const m = meds[i];
-    if ((slot === 'morning' && (m.time === 'morning' || m.time === 'both')) ||
-        (slot === 'evening' && (m.time === 'evening' || m.time === 'both'))) {
-      if (!isTakenToday(i, slot)) {
-        const key = todayKey() + '-' + i + '-' + slot + '-' + (now + i);
-        intakes[key] = true;
-        count++;
-      }
-    }
-  }
-  if (count) await saveIntakes();
-  renderAll();
-  showToast(count > 0 ? 'Took ' + count + ' ' + slot + ' pills ✓' : 'All already taken', count > 0 ? 'success' : 'info');
-}
-
-function getStreak(idx) {
-  let streak = 0;
-  for (let d = 0; d < 365; d++) {
-    const date = new Date();
-    date.setDate(date.getDate() - d);
-    const dk = date.toISOString().split('T')[0];
-    const prefix = dk + '-' + idx + '-preventive';
-    if (Object.keys(intakes).some(k => k.startsWith(prefix))) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
-async function markThyroidNow() {
-  thyroid = { date: todayKey(), ts: Date.now() };
-  await saveThyroid();
-  const key = todayKey() + '-thyroid--' + thyroid.ts;
-  intakes[key] = true;
-  await saveIntakes();
-  renderAll();
-  showToast('Thyroid logged — wait ~30 min', 'warn');
-}
-
-function openThyModal() {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  document.getElementById('thy-time-input').value = hh + ':' + mm;
-  document.getElementById('thy-modal').classList.add('open');
-}
-function closeThyModal() {
-  document.getElementById('thy-modal').classList.remove('open');
-}
-
-async function saveThyroidTime() {
-  const val = document.getElementById('thy-time-input').value;
-  if (!val) return showToast('Pick a time', 'warn');
-  const [h, m] = val.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  thyroid = { date: todayKey(), ts: d.getTime() };
-  await saveThyroid();
-  const key = todayKey() + '-thyroid--' + thyroid.ts;
-  intakes[key] = true;
-  await saveIntakes();
-  closeThyModal();
-  renderAll();
-  showToast('Thyroid time saved', 'success');
-}
-
-function renderThyroid() {
-  const badge = document.getElementById('thy-badge');
-  const btn = document.getElementById('btn-thy-now');
-
-  if (!thyroid.date || thyroid.date !== todayKey()) {
-    badge.innerHTML = '';
-    btn.disabled = false;
-    return;
-  }
-
-  btn.disabled = true;
-  const minsElapsed = Math.floor((Date.now() - thyroid.ts) / 60000);
-  const remaining = Math.max(0, 30 - minsElapsed);
-  const timeStr = fmtTime(thyroid.ts);
-
-  if (remaining > 0) {
-    badge.innerHTML = '<span class="thy-badge thy-warn">' + timeStr + ' · ' + remaining + 'min left</span>';
-  } else {
-    badge.innerHTML = '<span class="thy-badge thy-good">' + timeStr + ' · Clear ✓</span>';
-  }
+  const b = document.getElementById('body-' + id);
+  const i = document.getElementById('icon-' + id);
+  const open = b.style.display === 'none';
+  b.style.display = open ? 'block' : 'none';
+  i.textContent = open ? '−' : '+';
 }
 
 function toggleExtraFields() {
-  const val = document.getElementById('f-time').value;
-  document.getElementById('extra-asneeded').style.display  = val === 'asneeded'   ? 'block' : 'none';
-  document.getElementById('extra-preventive').style.display = val === 'preventive' ? 'block' : 'none';
+  const v = document.getElementById('f-time').value;
+  document.getElementById('extra-asneeded').style.display = v === 'asneeded' ? 'block' : 'none';
 }
 
-// EDIT MEDICATION LOGIC
 function startEdit(i) {
-  const m = meds[i];
-  editingIndex = i;
+  const m = meds[i]; editingIndex = i;
   document.getElementById('f-name').value = m.name;
   document.getElementById('f-dose').value = m.dose || '';
   document.getElementById('f-time').value = m.time;
-  
-  if (m.time === 'asneeded') {
-    document.getElementById('f-minhours').value = m.minHours || '';
-    document.getElementById('f-rechours').value = m.recHours || '';
-    document.getElementById('f-greenhours').value = m.greenHours || '';
-    document.getElementById('f-maxdaily').value = m.maxDaily || '';
-  }
-  if (m.time === 'preventive') {
-    document.getElementById('f-green').value = m.greenDays || '7';
-    document.getElementById('f-yellow').value = m.yellowDays || '5';
-  }
-  
   toggleExtraFields();
-  const addBtn = document.querySelector('[onclick="addMed()"]');
-  addBtn.textContent = "Save Changes";
-  addBtn.className = "blu";
-  document.getElementById('f-name').focus();
-  showToast('Editing ' + m.name);
+  document.getElementById('btn-submit').textContent = "Save Changes";
+  document.getElementById('btn-submit').className = "blu";
 }
 
 async function addMed() {
   const name = document.getElementById('f-name').value.trim();
-  if (!name) return showToast('Name is required', 'warn');
-  const dose = document.getElementById('f-dose').value.trim();
-  const time = document.getElementById('f-time').value;
-  const med = { name, dose, time };
-
-  if (time === 'asneeded') {
-    med.minHours   = parseFloat(document.getElementById('f-minhours').value)   || 0;
-    med.recHours   = parseFloat(document.getElementById('f-rechours').value)   || 0;
-    med.greenHours = parseFloat(document.getElementById('f-greenhours').value) || 0;
-    med.maxDaily   = parseInt(document.getElementById('f-maxdaily').value)     || 0;
-  }
-  if (time === 'preventive') {
-    med.greenDays  = parseInt(document.getElementById('f-green').value)  || 7;
-    med.yellowDays = parseInt(document.getElementById('f-yellow').value) || 5;
-  }
-
-  if (editingIndex !== null) {
-    meds[editingIndex] = med;
-    editingIndex = null;
-    const addBtn = document.querySelector('[onclick="addMed()"]');
-    addBtn.textContent = "Add Medication";
-    addBtn.className = "";
-    showToast('Updated ' + name, 'success');
-  } else {
-    meds.push(med);
-    showToast('Added ' + name, 'success');
-  }
-  
-  await saveMeds();
-  resetForm();
-  renderAll();
-}
-
-function resetForm() {
+  if (!name) return;
+  const med = {
+    name, dose: document.getElementById('f-dose').value.trim(),
+    time: document.getElementById('f-time').value,
+    minHours: document.getElementById('f-minhours').value || 0
+  };
+  if (editingIndex !== null) { meds[editingIndex] = med; editingIndex = null; }
+  else { meds.push(med); }
+  await dbSet('meds', meds);
   document.getElementById('f-name').value = '';
   document.getElementById('f-dose').value = '';
-  document.getElementById('f-time').value = 'morning';
-  document.getElementById('f-minhours').value = '';
-  document.getElementById('f-rechours').value = '';
-  document.getElementById('f-greenhours').value = '';
-  document.getElementById('f-maxdaily').value = '';
-  document.getElementById('f-green').value = '7';
-  document.getElementById('f-yellow').value = '5';
-  toggleExtraFields();
-}
-
-async function deleteMed(i) {
-  if (!confirm('Delete ' + meds[i].name + '?')) return;
-  meds.splice(i, 1);
-  await saveMeds();
+  document.getElementById('btn-submit').textContent = "Add Medication";
+  document.getElementById('btn-submit').className = "";
   renderAll();
-  showToast('Deleted', 'info');
 }
 
-// Backup / Restore
-function backupData() {
-  const data = { meds, intakes, thyroid, exported: new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'pill-tracker-backup-' + todayKey() + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Backup saved', 'success');
+async function markTaken(idx, slot) {
+  const key = todayKey() + '-' + idx + '-' + slot + '-' + Date.now();
+  intakes[key] = true; await dbSet('intakes', intakes); renderAll();
 }
 
-async function restoreData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async e => {
-    try {
-      const d = JSON.parse(e.target.result);
-      meds    = d.meds    || [];
-      intakes = d.intakes || {};
-      thyroid = d.thyroid || { date: null, ts: null };
-      await saveMeds();
-      await saveIntakes();
-      await saveThyroid();
-      renderAll();
-      showToast('Data restored ✓', 'success');
-    } catch {
-      showToast('Invalid backup file', 'warn');
-    }
-    event.target.value = '';
-  };
-  reader.readAsText(file);
-}
-
-async function clearLogsOnly() {
-  if (!confirm('Clear all dose logs? Your medications list will stay. Cannot undo.')) return;
-  intakes = {};
-  await saveIntakes();
-  renderAll();
-  showToast('Logs cleared', 'info');
-}
-
-async function clearAllData() {
-  if (!confirm('Clear EVERYTHING? Medications, logs, and thyroid history. Cannot undo.')) return;
-  meds = []; intakes = {}; thyroid = { date: null, ts: null };
-  await saveMeds(); await saveIntakes(); await saveThyroid();
-  renderAll();
-  showToast('All data cleared', 'info');
-}
-
-// Render functions
-function renderDailyList(containerId, slot) {
-  const el = document.getElementById(containerId);
-  const list = meds
-    .map((m, i) => ({ m, i }))
-    .filter(({ m }) =>
-      (slot === 'morning' && (m.time === 'morning' || m.time === 'both')) ||
-      (slot === 'evening' && (m.time === 'evening' || m.time === 'both'))
-    );
-
-  if (!list.length) {
-    el.innerHTML = '<p class="empty">No ' + slot + ' meds added yet</p>';
-    document.getElementById('btn-all-' + slot).style.display = 'none';
-    return;
-  }
-  document.getElementById('btn-all-' + slot).style.display = '';
-
-  el.innerHTML = list.map(({ m, i }) => {
-    const done = isTakenToday(i, slot);
-    return '<div class="pill-row' + (done ? ' done' : '') + '">' +
-      '<div class="circle' + (done ? ' on' : '') + '" onclick="' + (done ? '' : 'markTaken(' + i + ',\'' + slot + '\')') + '">' +
-      (done ? '✓' : '') + '</div>' +
-      '<div class="pill-info">' +
-        '<div class="pill-name' + (done ? ' taken' : '') + '">' + esc(m.name) + '</div>' +
-        (m.dose ? '<div class="pill-dose">' + esc(m.dose) + '</div>' : '') +
-      '</div>' +
-      (done ? '<span style="font-size:0.78em;color:#2d5a2d;">taken</span>' : '') +
-    '</div>';
+function renderDailyList(id, slot) {
+  const el = document.getElementById(id);
+  const list = meds.map((m, i) => ({m, i})).filter(({m}) => (slot==='morning' && (m.time==='morning'||m.time==='both')) || (slot==='evening' && (m.time==='evening'||m.time==='both')));
+  el.innerHTML = list.map(({m, i}) => {
+    const done = Object.keys(intakes).some(k => k.startsWith(todayKey() + '-' + i + '-' + slot));
+    return `<div class="pill-row ${done?'done':''}">
+      <div class="circle ${done?'on':''}" onclick="${done?'':'markTaken('+i+',\''+slot+'\')'}">${done?'✓':''}</div>
+      <div class="pill-info">
+        <div class="pill-name ${done?'taken':''}">${m.name}</div>
+        <div class="pill-dose">${m.dose || ''}</div>
+      </div>
+    </div>`;
   }).join('');
 }
 
 function renderAsNeeded() {
-  const list = meds.map((m, i) => ({ m, i })).filter(({ m }) => m.time === 'asneeded');
-  const sec = document.getElementById('section-asneeded');
-  const el  = document.getElementById('asneeded-list');
-  if (!list.length) { sec.style.display = 'none'; return; }
-  sec.style.display = '';
-
-  el.innerHTML = list.map(({ m, i }) => {
-    const count       = countAsNeededToday(i);
-    const lastTs      = lastAsNeededTs(i);
-    const minsElapsed = lastTs ? Math.floor((Date.now() - lastTs) / 60000) : null;
-    const hoursElapsed = minsElapsed !== null ? minsElapsed / 60 : null;
-
-    const overMax  = m.maxDaily && count >= m.maxDaily;
-    const tooSoon  = m.minHours   && hoursElapsed !== null && hoursElapsed < m.minHours;
-    const blocked  = tooSoon || overMax;
-
-    let dotColor = null;
-    let dotTitle = '';
-    if (lastTs) {
-      if (overMax) {
-        dotColor = 'var(--red)'; dotTitle = 'Daily max reached';
-      } else if (tooSoon) {
-        const hoursLeft = (m.minHours - hoursElapsed).toFixed(1);
-        dotColor = 'var(--red)'; dotTitle = 'Too soon — wait ' + hoursLeft + 'h';
-      } else if (m.greenHours && hoursElapsed < m.greenHours) {
-        dotColor = 'var(--yellow)';
-        const hoursLeft = (m.greenHours - hoursElapsed).toFixed(1);
-        dotTitle = 'Can take — fully ready in ' + hoursLeft + 'h';
-      } else {
-        dotColor = 'var(--green)'; dotTitle = 'Good to go';
-      }
-    }
-
-    let subMsg = '';
-    if (overMax)      subMsg = '<div class="pill-dose warn">Daily max reached</div>';
-    else if (tooSoon) subMsg = '<div class="pill-dose warn">' + dotTitle + '</div>';
-    else if (lastTs && dotColor === 'var(--yellow)') subMsg = '<div class="pill-dose" style="color:var(--yellow);">' + dotTitle + '</div>';
-    else if (lastTs)  subMsg = '<div class="pill-dose ok">Last: ' + fmtTime(lastTs) + (dotColor === 'var(--green)' ? ' · Ready ✓' : '') + '</div>';
-
-    const dot = dotColor
-      ? '<div style="width:11px;height:11px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;margin-right:2px;" title="' + dotTitle + '"></div>'
-      : '<div style="width:11px;height:11px;flex-shrink:0;margin-right:2px;"></div>';
-
-    return '<div class="pill-row">' +
-      dot +
-      '<div class="circle add' + (blocked ? ' blocked' : '') + '" ' +
-        (blocked ? '' : 'onclick="logAsNeeded(' + i + ')"') + '>' +
-        (blocked ? '✕' : '+') + '</div>' +
-      '<div class="pill-info">' +
-        '<div class="pill-name">' + esc(m.name) + (m.dose ? ' <span style="color:var(--muted);font-size:0.85em;">(' + esc(m.dose) + ')</span>' : '') + '</div>' +
-        subMsg +
-      '</div>' +
-      '<span style="font-size:0.78em;color:var(--dim);">' + count + ' today</span>' +
-    '</div>';
-  }).join('');
-}
-
-async function logAsNeeded(i) {
-  await markTaken(i, 'asneeded');
-  showToast('Logged', 'success');
-}
-
-function renderPreventive() {
-  const list = meds.map((m, i) => ({ m, i })).filter(({ m }) => m.time === 'preventive');
-  const sec = document.getElementById('section-preventive');
-  const el  = document.getElementById('preventive-list');
-  if (!list.length) { sec.style.display = 'none'; return; }
-  sec.style.display = '';
-
-  el.innerHTML = list.map(({ m, i }) => {
-    const streak   = getStreak(i);
-    const green    = m.greenDays  || 7;
-    const yellow   = m.yellowDays || 5;
-    const dotClass = streak >= green ? 'dot-green' : streak >= yellow ? 'dot-yellow' : 'dot-red';
-    const label    = streak >= green ? 'On track' : streak >= yellow ? 'Slipping' : 'Danger';
-    const takenToday = isTakenToday(i, 'preventive');
-
-    return '<div class="pill-row">' +
-      '<div class="prev-dot ' + dotClass + '"></div>' +
-      '<div class="pill-info">' +
-        '<div class="pill-name">' + esc(m.name) + (m.dose ? ' <span style="color:var(--muted);font-size:0.85em;">(' + esc(m.dose) + ')</span>' : '') + '</div>' +
-        '<div class="pill-dose">' + label + ' · ' + streak + '-day streak</div>' +
-      '</div>' +
-      (takenToday
-        ? '<span style="font-size:0.78em;color:var(--green);">✓ logged</span>'
-        : '<button class="sm" onclick="logPreventive(' + i + ')">Log Today</button>'
-      ) +
-    '</div>';
-  }).join('');
-}
-
-async function logPreventive(i) {
-  if (isTakenToday(i, 'preventive')) return showToast('Already logged today', 'info');
-  await markTaken(i, 'preventive');
-  showToast('Logged!', 'success');
+  const list = meds.map((m, i) => ({m, i})).filter(({m}) => m.time === 'asneeded');
+  document.getElementById('section-asneeded').style.display = list.length ? 'block' : 'none';
+  document.getElementById('asneeded-list').innerHTML = list.map(({m, i}) => `
+    <div class="pill-row">
+      <div class="circle add" onclick="markTaken(${i},'asneeded')">+</div>
+      <div class="pill-info">
+        <div class="pill-name">${m.name} ${m.dose ? '('+m.dose+')' : ''}</div>
+      </div>
+    </div>`).join('');
 }
 
 function renderMedsList() {
-  const el = document.getElementById('meds-list');
-  if (!meds.length) { el.innerHTML = '<p class="empty">No meds yet</p>'; return; }
-  el.innerHTML = meds.map((m, i) =>
-    '<div class="med-item">' +
-      '<div class="med-item-text">' +
-        '<div>' + esc(m.name) + (m.dose ? ' <span style="color:var(--muted);">(' + esc(m.dose) + ')</span>' : '') + '</div>' +
-        '<div class="med-slot">' + fmtSlot(m.time) +
-          (m.time === 'asneeded' ? ' · ' + [m.minHours ? 'min ' + m.minHours + 'h' : '', m.recHours ? 'yellow ' + m.recHours + 'h' : '', m.greenHours ? 'green ' + m.greenHours + 'h' : '', m.maxDaily ? 'max ' + m.maxDaily + '/day' : ''].filter(Boolean).join(', ') : '') +
-          (m.time === 'preventive' ? ' · green≥' + (m.greenDays||7) + 'd, yellow≥' + (m.yellowDays||5) + 'd' : '') +
-        '</div>' +
-      '</div>' +
-      '<div class="btn-row" style="width:auto; gap:4px;">' +
-        '<button class="sm blu" onclick="startEdit(' + i + ')">Edit</button>' +
-        '<button class="sm danger" onclick="deleteMed(' + i + ')">Del</button>' +
-      '</div>' +
-    '</div>'
-  ).join('');
-}
-
-function renderLog() {
-  const today = todayKey();
-  const entries = Object.keys(intakes)
-    .filter(k => k.startsWith(today))
-    .map(k => {
-      const parts = k.split('-');
-      const isThyroid = parts[1] === 'thyroid';
-      const idx  = isThyroid ? null : parseInt(parts[3]);
-      const slot = parts[4];
-      const ts   = parseInt(parts[5]) || null;
-      const medName = isThyroid ? 'Thyroid' : (meds[idx] ? meds[idx].name : 'Unknown');
-      return { medName, slot, ts };
-    })
-    .sort((a, b) => (a.ts || 0) - (b.ts || 0));
-
-  const noLog   = document.getElementById('no-log');
-  const table   = document.getElementById('log-table');
-  const body    = document.getElementById('log-body');
-  const title   = document.getElementById('log-title');
-
-  title.textContent = "Today's Log" + (entries.length ? ' (' + entries.length + ')' : '');
-
-  if (!entries.length) {
-    noLog.style.display = ''; table.style.display = 'none'; return;
-  }
-  noLog.style.display = 'none'; table.style.display = '';
-  body.innerHTML = entries.map(e =>
-    '<tr>' +
-      '<td>' + esc(e.medName) + '</td>' +
-      '<td style="color:var(--muted);">' + (e.ts ? fmtTime(e.ts) : '—') + '</td>' +
-      '<td style="color:var(--dim);">' + fmtSlot(e.slot) + '</td>' +
-    '</tr>'
-  ).join('');
+  document.getElementById('meds-list').innerHTML = meds.map((m, i) => `
+    <div class="med-item">
+      <div class="pill-info">
+        <div>${m.name} ${m.dose ? '('+m.dose+')' : ''}</div>
+        <div class="med-slot">${fmtSlot(m.time)}</div>
+      </div>
+      <button class="sm blu" onclick="startEdit(${i})">Edit</button>
+    </div>`).join('');
 }
 
 function renderAll() {
-  renderThyroid();
   renderDailyList('morning-list', 'morning');
   renderDailyList('evening-list', 'evening');
   renderAsNeeded();
-  renderPreventive();
   renderMedsList();
-  renderLog();
 }
 
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-setInterval(() => { renderThyroid(); }, 30000);
-
-function checkInstallBanner() {
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  const isStandalone = window.navigator.standalone === true;
-  if (isSafari && !isStandalone) {
-    document.getElementById('install-tip').style.display = 'block';
-  }
-}
-
-openDB().then(async () => {
-  await loadAll();
-  renderAll();
-  checkInstallBanner();
-}).catch(err => {
-  document.body.innerHTML = '<div style="padding:30px;color:#ef4444;text-align:center;">' +
-    '<h2>Storage Error</h2><p>' + err.message + '</p>' +
-    '<p style="color:#666;font-size:0.85em;">Try opening this file in a modern browser like Chrome or Safari.</p></div>';
-});
+openDB().then(async () => { await loadAll(); renderAll(); });
+</script>
+</body>
+</html>
